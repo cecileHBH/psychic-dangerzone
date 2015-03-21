@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuite tests="11" failures="0" name="fr.ippon.contest.puissance4.Puissance4Test" time="0.364" errors="0" skipped="0">
+<testsuite tests="11" failures="0" name="fr.ippon.contest.puissance4.Puissance4Test" time="0.461" errors="0" skipped="0">
   <properties>
     <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
     <property name="sun.boot.library.path" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib"/>
@@ -15,7 +15,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="sun.os.patch.level" value="unknown"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="user.dir" value="/Users/cecilehui-bon-hoa/Documents/workspace/puissance4"/>
+    <property name="user.dir" value="/Users/cecilehui-bon-hoa/Documents/workspace/psychic-dangerzone"/>
     <property name="java.runtime.version" value="1.8.0_40-b25"/>
     <property name="java.awt.graphicsenv" value="sun.awt.CGraphicsEnvironment"/>
     <property name="java.endorsed.dirs" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/endorsed"/>
@@ -25,7 +25,7 @@
 "/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="os.name" value="Mac OS X"/>
-    <property name="classworlds.conf" value="/Users/cecilehui-bon-hoa/Documents/workspace/.metadata/.plugins/org.eclipse.m2e.launching/launches/m2conf1678187284859460920.tmp"/>
+    <property name="classworlds.conf" value="/Users/cecilehui-bon-hoa/Documents/workspace/.metadata/.plugins/org.eclipse.m2e.launching/launches/m2conf1854476594846321488.tmp"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
     <property name="java.library.path" value="/Users/cecilehui-bon-hoa/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
@@ -52,7 +52,7 @@
     <property name="java.ext.dirs" value="/Users/cecilehui-bon-hoa/Library/Java/Extensions:/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/ext:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java"/>
     <property name="sun.boot.class.path" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/resources.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/rt.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/sunrsasign.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/jsse.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/jce.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/charsets.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/lib/jfr.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_40.jdk/Contents/Home/jre/classes"/>
     <property name="java.vendor" value="Oracle Corporation"/>
-    <property name="maven.home" value="/Users/cecilehui-bon-hoa/Documents/workspace/puissance4/EMBEDDED"/>
+    <property name="maven.home" value="/Users/cecilehui-bon-hoa/Documents/workspace/psychic-dangerzone/EMBEDDED"/>
     <property name="file.separator" value="/"/>
     <property name="java.vendor.url.bug" value="http://bugreport.sun.com/bugreport/"/>
     <property name="maven.bootclasspath" value="/Users/cecilehui-bon-hoa/Downloads/eclipse/configuration/org.eclipse.osgi/bundles/374/1/.cp/jars/plexus-classworlds-2.4.jar"/>
@@ -62,15 +62,15 @@
     <property name="ftp.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="sun.cpu.isalist" value=""/>
   </properties>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testsErreursChargerJeu" time="0.085"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testsErreursChargerJeu" time="0.197"/>
   <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerJeu" time="0.005"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testJouer" time="0.01"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerLigneGagnante" time="0"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerColonneGagnante" time="0.001"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerDiagonaleGagnante" time="0.004"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testjouerLigneGagnante" time="0.005"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testJouerColonneGagnante" time="0.004"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testJouerDiagonaleGagnante" time="0.026"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testJouerNul" time="0.01"/>
-  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerNul" time="0.006"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testJouer" time="0.003"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerLigneGagnante" time="0.002"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerColonneGagnante" time="0"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerDiagonaleGagnante" time="0.002"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testjouerLigneGagnante" time="0.003"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testJouerColonneGagnante" time="0.001"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testJouerDiagonaleGagnante" time="0.003"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testJouerNul" time="0"/>
+  <testcase classname="fr.ippon.contest.puissance4.Puissance4Test" name="testChargerNul" time="0"/>
 </testsuite>
