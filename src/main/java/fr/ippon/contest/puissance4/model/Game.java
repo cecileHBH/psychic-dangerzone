@@ -12,6 +12,8 @@ public class Game extends Observable {
 
 	private Player player = Player.DEFAULT;
 
+	private char nextPlayer = Player.DEFAULT.getValue();
+
 	private EtatJeu etat = null;
 
 	/**
@@ -40,6 +42,7 @@ public class Game extends Observable {
 		this.grid = grid;
 		this.player = actualPlayer;
 		this.etat = null;
+		this.nextPlayer = findNextPlayer().getValue();
 	}
 
 	private void checkGrid(char[][] grid) {
@@ -58,11 +61,41 @@ public class Game extends Observable {
      * 
      */
 	private void initFirstPlayer() {
+
+		this.player = getRandomPlayer();
+
+	}
+
+	private Player getRandomPlayer() {
 		Random random = new Random();
 		if (random.nextBoolean()) {
-			this.player = Player.J;
+			return Player.J;
 		} else {
-			this.player = Player.R;
+			return Player.R;
+		}
+	}
+
+	/**
+	 * 
+	 */
+	public void setNextRoundPlayer() {
+
+		this.setPlayer(findNextPlayer());
+	}
+
+	/**
+	 * 
+	 */
+	public Player findNextPlayer() {
+		switch (this.getPlayer()) {
+		case J:
+			return Player.R;
+
+		case R:
+			return Player.J;
+
+		default:
+			return getRandomPlayer();
 		}
 	}
 
@@ -97,6 +130,14 @@ public class Game extends Observable {
 		}
 		setChanged();
 		notifyObservers();
+	}
+
+	public void setNextPlayer(char nextPlayer) {
+		this.nextPlayer = nextPlayer;
+	}
+
+	public char getNextPlayer() {
+		return nextPlayer;
 	}
 
 }
