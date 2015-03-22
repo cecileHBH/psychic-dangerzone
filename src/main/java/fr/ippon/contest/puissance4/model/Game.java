@@ -10,9 +10,9 @@ public class Game extends Observable {
 
 	private char[][] grid = new char[Constants.NB_OF_LINES][Constants.NB_OF_COLUMNS];
 
-	private Player player = Player.DEFAULT;
+	private Player player = null;
 
-	private char nextPlayer = Player.DEFAULT.getValue();
+	private char nextPlayer = Constants.DEFAULT_PLAYER;
 
 	private EtatJeu etat = null;
 
@@ -22,7 +22,7 @@ public class Game extends Observable {
 	public void initGame() {
 
 		for (char[] row : grid) {
-			Arrays.fill(row, Player.DEFAULT.getValue());
+			Arrays.fill(row, Constants.DEFAULT_PLAYER);
 		}
 
 		this.etat = EtatJeu.EN_COURS;
@@ -33,7 +33,7 @@ public class Game extends Observable {
 	public void initGame(char[][] grid, char tour) {
 		Player actualPlayer = Player.findJoueurByValue(tour);
 
-		if (actualPlayer.equals(Player.DEFAULT)) {
+		if (actualPlayer == null) {
 			throw new IllegalArgumentException("joueur manquant");
 		}
 
@@ -87,16 +87,7 @@ public class Game extends Observable {
 	 * 
 	 */
 	public Player findNextPlayer() {
-		switch (this.getPlayer()) {
-		case J:
-			return Player.R;
-
-		case R:
-			return Player.J;
-
-		default:
-			return getRandomPlayer();
-		}
+		return this.getPlayer().switchPlayer();
 	}
 
 	public char getCell(int line, int column) {

@@ -10,7 +10,6 @@ import fr.ippon.contest.puissance4.model.ComputationType;
 import fr.ippon.contest.puissance4.model.Constants;
 import fr.ippon.contest.puissance4.model.Game;
 import fr.ippon.contest.puissance4.model.GameScore;
-import fr.ippon.contest.puissance4.model.Player;
 
 public class Puissance4Impl implements Puissance4, Observer {
 
@@ -18,13 +17,13 @@ public class Puissance4Impl implements Puissance4, Observer {
 
 	private Game game = new Game();
 
-	private boolean stateChanged = false;
+	private boolean winnerFound = false;
 
 	private int cptIter = 0;
 
 	@Override
 	public void nouveauJeu() {
-		stateChanged = false;
+		winnerFound = false;
 		game = new Game();
 		game.initGame();
 		game.addObserver(this);
@@ -89,7 +88,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 	 */
 	private void initVar() {
 		this.cptIter = 0;
-		stateChanged = false;
+		winnerFound = false;
 	}
 
 	/**
@@ -103,11 +102,11 @@ public class Puissance4Impl implements Puissance4, Observer {
 		}
 
 		simpleGameStatus(game.getGrid());
-		if (stateChanged) {
+		if (winnerFound) {
 			return;
 		}
 		diagonalStatus(game.getGrid());
-		if (stateChanged) {
+		if (winnerFound) {
 			return;
 		}
 		if (isGameOver()) {
@@ -128,7 +127,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 
 		horizontalStatus(grid);
 
-		if (stateChanged) {
+		if (winnerFound) {
 			return;
 		}
 
@@ -143,8 +142,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 	private boolean isGameOver() {
 		int full = 0;
 		for (int i = Constants.FIRST_INDEX; i < Constants.NB_OF_COLUMNS; i++) {
-			if (game.getCell(Constants.FIRST_INDEX, i) != Player.DEFAULT
-					.getValue()) {
+			if (game.getCell(Constants.FIRST_INDEX, i) != Constants.DEFAULT_PLAYER) {
 				full++;
 			}
 		}
@@ -167,7 +165,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 			computeGameStatus(i, Constants.FIRST_INDEX,
 					ComputationType.HORIZONTAL);
 
-			if (stateChanged) {
+			if (winnerFound) {
 				return;
 			}
 		}
@@ -185,7 +183,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 			computeGameStatus(Constants.FIRST_INDEX, i,
 					ComputationType.VERTICAL);
 
-			if (stateChanged) {
+			if (winnerFound) {
 				return;
 			}
 
@@ -203,14 +201,14 @@ public class Puissance4Impl implements Puissance4, Observer {
 			computeGameStatus(i, Constants.FIRST_INDEX,
 					ComputationType.DIAGONAL_TOP_BOTTOM);
 
-			if (!stateChanged) {
+			if (!winnerFound) {
 				computeGameStatus(i + Constants.DIAG_TOP_LINE_INDEX_LIMIT,
 						Constants.FIRST_INDEX,
 						ComputationType.DIAGONAL_BOTTOM_TOP);
 
 			}
 
-			if (stateChanged) {
+			if (winnerFound) {
 				break;
 			}
 		}
@@ -220,12 +218,12 @@ public class Puissance4Impl implements Puissance4, Observer {
 			computeGameStatus(Constants.FIRST_INDEX, i,
 					ComputationType.DIAGONAL_TOP_BOTTOM);
 
-			if (!stateChanged) {
+			if (!winnerFound) {
 				computeGameStatus(5, i, ComputationType.DIAGONAL_BOTTOM_TOP);
 
 			}
 
-			if (stateChanged) {
+			if (winnerFound) {
 				break;
 			}
 		}
@@ -242,7 +240,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 
 			for (ComputationType computationType : ComputationType.values()) {
 				computeGameStatus(line, column, computationType);
-				if (stateChanged) {
+				if (winnerFound) {
 					break;
 				}
 			}
@@ -311,7 +309,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 
 			gameScore = updateGameScore(j, column, gameScore);
 
-			if (game.getCell(j, column) == Player.DEFAULT.getValue()
+			if (game.getCell(j, column) == Constants.DEFAULT_PLAYER
 					|| !gameScore.needToContinue(j, this.game)) {
 				break;
 			}
@@ -417,7 +415,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 	 */
 	private int findEmptyLineIndex(int colonne) {
 		for (int i = Constants.NB_OF_LINES - 1; i >= Constants.FIRST_INDEX; i--) {
-			if (game.getCell(i, colonne) == Player.DEFAULT.getValue()) {
+			if (game.getCell(i, colonne) == Constants.DEFAULT_PLAYER) {
 				return i;
 			}
 		}
@@ -427,7 +425,7 @@ public class Puissance4Impl implements Puissance4, Observer {
 
 	@Override
 	public void update(Observable o, Object arg) {
-		stateChanged = true;
+		winnerFound = true;
 	}
 
 	/**

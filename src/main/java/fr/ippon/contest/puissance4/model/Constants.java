@@ -12,4 +12,8 @@ public class Constants {
 	public static final int DIAG_TOP_LINE_INDEX_LIMIT = 3;
 	public static final int DIAG_BOTTOM_LINE_INDEX_LIMIT = 2;
 
+	public static final char RED_PLAYER = 'R';
+	public static final char YELLOW_PLAYER = 'J';
+	public static final char DEFAULT_PLAYER = '-';
+
 }

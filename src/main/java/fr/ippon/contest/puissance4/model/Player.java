@@ -1,27 +1,40 @@
 package fr.ippon.contest.puissance4.model;
 
 public enum Player {
-    
-    R('R'), J('J'), DEFAULT('-');
 
-    private char value;
+	R(Constants.RED_PLAYER) {
+		@Override
+		Player switchPlayer() {
+			return J;
+		}
+	},
+	J(Constants.YELLOW_PLAYER) {
+		@Override
+		Player switchPlayer() {
+			return R;
+		}
+	};
 
-    private Player(char value) {
-        this.value = value;
-    }
+	private char value;
 
-    public static Player findJoueurByValue(char valueToFind) {
-        for (int i = 0; i < Player.values().length; i++) {
-            if (Player.values()[i].value == valueToFind) {
-                return Player.values()[i];
-            }
-        }
+	private Player(char value) {
+		this.value = value;
+	}
 
-        throw new IllegalArgumentException(String.format("Value to find %s did not match existing values %s", valueToFind, Player.values()));
-    }
+	abstract Player switchPlayer();
 
-    public char getValue() {
-        return value;
-    }
+	public static Player findJoueurByValue(char valueToFind) {
+		for (Player player : values()) {
+			if (player.value == valueToFind) {
+				return player;
+			}
+		}
+
+		return null;
+	}
+
+	public char getValue() {
+		return value;
+	}
 
 }
