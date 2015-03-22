@@ -1,5 +1,8 @@
 package fr.ippon.contest.puissance4.impl;
 
+import java.util.Observable;
+import java.util.Observer;
+
 import org.apache.log4j.Logger;
 
 import fr.ippon.contest.puissance4.Puissance4;
@@ -9,25 +12,32 @@ import fr.ippon.contest.puissance4.model.Game;
 import fr.ippon.contest.puissance4.model.GameScore;
 import fr.ippon.contest.puissance4.model.Player;
 
-public class Puissance4Impl implements Puissance4 {
+public class Puissance4Impl implements Puissance4, Observer {
 
 	private static final Logger LOG = Logger.getLogger(Puissance4Impl.class);
 
 	private Game game = new Game();
 
+	private boolean keepComputing = true;
+
 	private int cptIter = 0;
 
 	@Override
 	public void nouveauJeu() {
-
+		keepComputing = true;
+		game = new Game();
 		game.initGame();
+		game.addObserver(this);
 
 	}
 
 	@Override
 	public void chargerJeu(char[][] grid, char tour) {
-
+		keepComputing = true;
+		game = new Game();
 		game.initGame(grid, tour);
+		game.addObserver(this);
+
 		updateGameStatus();
 	}
 
@@ -65,6 +75,7 @@ public class Puissance4Impl implements Puissance4 {
 		setNextPlayer();
 
 		this.cptIter = 0;
+		keepComputing = true;
 		updateGameStatusAfterMove(lineIndex, colonne);
 
 		LOG.debug("Compute game status in " + cptIter + " iterations.");
@@ -75,7 +86,7 @@ public class Puissance4Impl implements Puissance4 {
 	 */
 	private void updateGameStatus() {
 		this.cptIter = 0;
-		this.game.setEtat(gameStatus());
+		gameStatus();
 
 		LOG.debug("Compute game status in " + cptIter + " iterations.");
 
@@ -86,37 +97,25 @@ public class Puissance4Impl implements Puissance4 {
 	 * 
 	 * @return
 	 */
-	private EtatJeu gameStatus() {
+	private void gameStatus() {
 
 		if (game.getEtat() != null && !game.getEtat().equals(EtatJeu.EN_COURS)) {
-			return game.getEtat();
+			return;
 		}
 
-		EtatJeu simpleStatus = simpleGameStatus(game.getGrid());
-		if (existsWinner(simpleStatus)) {
-			return simpleStatus;
+		simpleGameStatus(game.getGrid());
+		if (!keepComputing) {
+			return;
 		}
-
-		EtatJeu diagonalStatus = diagonalStatus(game.getGrid());
-		if (existsWinner(diagonalStatus)) {
-			return diagonalStatus;
+		diagonalStatus(game.getGrid());
+		if (!keepComputing) {
+			return;
 		}
-
 		if (isGameOver()) {
-			return EtatJeu.MATCH_NUL;
+			this.game.setEtat(EtatJeu.MATCH_NUL);
+		} else {
+			this.game.setEtat(EtatJeu.EN_COURS);
 		}
-		return EtatJeu.EN_COURS;
-	}
-
-	/**
-	 * Return true if there is a winner for the game
-	 * 
-	 * @param simpleStatus
-	 * @return
-	 */
-	private boolean existsWinner(EtatJeu simpleStatus) {
-		return simpleStatus.equals(EtatJeu.JAUNE_GAGNE)
-				|| simpleStatus.equals(EtatJeu.ROUGE_GAGNE);
 	}
 
 	/**
@@ -128,17 +127,13 @@ public class Puissance4Impl implements Puissance4 {
 	 * @param nbOfColumns
 	 * @return
 	 */
-	private EtatJeu simpleGameStatus(char[][] grid) {
+	private void simpleGameStatus(char[][] grid) {
 
-		EtatJeu horizontalStatus = horizontalStatus(grid);
-		if (existsWinner(horizontalStatus)) {
-			return horizontalStatus;
+		horizontalStatus(grid);
+
+		if (keepComputing) {
+			verticalStatus(grid);
 		}
-		EtatJeu verticalStatus = verticalStatus(grid);
-		if (existsWinner(verticalStatus)) {
-			return verticalStatus;
-		}
-		return EtatJeu.EN_COURS;
 	}
 
 	/**
@@ -168,19 +163,18 @@ public class Puissance4Impl implements Puissance4 {
 	 * @param nbColumns
 	 * @return
 	 */
-	private EtatJeu horizontalStatus(char[][] grid) {
+	private void horizontalStatus(char[][] grid) {
 
 		for (int i = Constants.NB_OF_LINES - 1; i >= Constants.FIRST_INDEX; i--) {
 
-			EtatJeu etat = computeGameStatus(i, Constants.FIRST_INDEX,
+			computeGameStatus(i, Constants.FIRST_INDEX,
 					ComputationType.HORIZONTAL);
 
-			if (existsWinner(etat)) {
-				return etat;
+			if (!keepComputing) {
+				break;
 			}
 		}
 
-		return EtatJeu.EN_COURS;
 	}
 
 	/**
@@ -189,20 +183,18 @@ public class Puissance4Impl implements Puissance4 {
 	 * @param nbColumns
 	 * @return
 	 */
-	private EtatJeu verticalStatus(char[][] grid) {
+	private void verticalStatus(char[][] grid) {
 
 		for (int i = Constants.FIRST_INDEX; i < Constants.NB_OF_COLUMNS; i++) {
 
-			EtatJeu etat = computeGameStatus(Constants.FIRST_INDEX, i,
+			computeGameStatus(Constants.FIRST_INDEX, i,
 					ComputationType.VERTICAL);
 
-			if (existsWinner(etat)) {
-				return etat;
+			if (!keepComputing) {
+				break;
 			}
 
 		}
-
-		return EtatJeu.EN_COURS;
 	}
 
 	/**
@@ -215,34 +207,33 @@ public class Puissance4Impl implements Puissance4 {
 
 		for (int i = Constants.FIRST_INDEX; i < Constants.DIAG_TOP_LINE_INDEX_LIMIT; i++) {
 
-			EtatJeu etat = computeGameStatus(i, Constants.FIRST_INDEX,
+			computeGameStatus(i, Constants.FIRST_INDEX,
 					ComputationType.DIAGONAL_TOP_BOTTOM);
 
-			if (existsWinner(etat)) {
-				return etat;
+			if (keepComputing) {
+				computeGameStatus(i + Constants.DIAG_TOP_LINE_INDEX_LIMIT,
+						Constants.FIRST_INDEX,
+						ComputationType.DIAGONAL_BOTTOM_TOP);
+
 			}
 
-			etat = computeGameStatus(i + Constants.DIAG_TOP_LINE_INDEX_LIMIT,
-					Constants.FIRST_INDEX, ComputationType.DIAGONAL_BOTTOM_TOP);
-
-			if (existsWinner(etat)) {
-				return etat;
+			if (!keepComputing) {
+				break;
 			}
 		}
 
 		for (int i = 1; i < Constants.DIAG_COLUMN_INDEX_LIMIT; i++) {
 
-			EtatJeu etat = computeGameStatus(Constants.FIRST_INDEX, i,
+			computeGameStatus(Constants.FIRST_INDEX, i,
 					ComputationType.DIAGONAL_TOP_BOTTOM);
 
-			if (existsWinner(etat)) {
-				return etat;
+			if (keepComputing) {
+				computeGameStatus(5, i, ComputationType.DIAGONAL_BOTTOM_TOP);
+
 			}
 
-			etat = computeGameStatus(5, i, ComputationType.DIAGONAL_BOTTOM_TOP);
-
-			if (existsWinner(etat)) {
-				return etat;
+			if (!keepComputing) {
+				break;
 			}
 		}
 
@@ -254,11 +245,9 @@ public class Puissance4Impl implements Puissance4 {
 		if (game.getEtat() == null || game.getEtat().equals(EtatJeu.EN_COURS)) {
 
 			for (ComputationType computationType : ComputationType.values()) {
-				EtatJeu rowStatus = computeGameStatus(line, column,
-						computationType);
-				if (!rowStatus.equals(EtatJeu.EN_COURS)) {
-					game.setEtat(rowStatus);
-					return;
+				computeGameStatus(line, column, computationType);
+				if (!keepComputing) {
+					break;
 				}
 			}
 
@@ -279,7 +268,8 @@ public class Puissance4Impl implements Puissance4 {
 
 			gameScore = updateGameScore(rowIndex, j, gameScore);
 
-			if (!gameScore.needToContinue(Constants.NB_OF_COLUMNS - colIndex)) {
+			if (!gameScore.needToContinue(Constants.NB_OF_COLUMNS - colIndex,
+					this.game)) {
 				break;
 			}
 		}
@@ -299,7 +289,7 @@ public class Puissance4Impl implements Puissance4 {
 
 			gameScore = updateGameScore(j, colIndex, gameScore);
 
-			if (!gameScore.needToContinue(j)) {
+			if (!gameScore.needToContinue(j, this.game)) {
 				break;
 			}
 		}
@@ -318,7 +308,7 @@ public class Puissance4Impl implements Puissance4 {
 			gameScore = updateGameScore(j, column, gameScore);
 
 			if (gameScore.getPrecedent() == Player.DEFAULT
-					|| !gameScore.needToContinue(j)) {
+					|| !gameScore.needToContinue(j, this.game)) {
 				break;
 			}
 		}
@@ -335,7 +325,8 @@ public class Puissance4Impl implements Puissance4 {
 
 			gameScore = updateGameScore(row, j, gameScore);
 
-			if (!gameScore.needToContinue(Constants.NB_OF_COLUMNS - j)) {
+			if (!gameScore.needToContinue(Constants.NB_OF_COLUMNS - j,
+					this.game)) {
 				break;
 			}
 		}
@@ -366,17 +357,15 @@ public class Puissance4Impl implements Puissance4 {
 		return gameScore;
 	}
 
-	private EtatJeu computeGameStatus(int line, int column,
+	private void computeGameStatus(int line, int column,
 			ComputationType computationType) {
-
-		GameScore gameScore = new GameScore();
 
 		switch (computationType) {
 		case HORIZONTAL:
-			gameScore = gameStatusOfRow(line);
+			gameStatusOfRow(line);
 			break;
 		case VERTICAL:
-			gameScore = gameStatusOfCol(column);
+			gameStatusOfCol(column);
 			break;
 
 		case DIAGONAL_TOP_BOTTOM:
@@ -386,8 +375,7 @@ public class Puissance4Impl implements Puissance4 {
 					: line - column;
 			if (firstRowIndex < Constants.DIAG_TOP_LINE_INDEX_LIMIT
 					&& firstColIndex < Constants.DIAG_COLUMN_INDEX_LIMIT) {
-				gameScore = gameStatusOfDiagTopToBottom(firstColIndex,
-						firstRowIndex);
+				gameStatusOfDiagTopToBottom(firstColIndex, firstRowIndex);
 			}
 			break;
 		case DIAGONAL_BOTTOM_TOP:
@@ -396,23 +384,13 @@ public class Puissance4Impl implements Puissance4 {
 			firstColIndex = column - (firstRowIndex - line);
 			if (firstRowIndex > Constants.DIAG_BOTTOM_LINE_INDEX_LIMIT
 					&& firstColIndex < Constants.DIAG_COLUMN_INDEX_LIMIT) {
-				gameScore = gameStatusOfDiagBottomToTop(firstColIndex,
-						firstRowIndex);
+				gameStatusOfDiagBottomToTop(firstColIndex, firstRowIndex);
 			}
 			break;
 		default:
 			break;
 		}
 
-		if (gameScore.getYellowScore() >= Constants.MINIMUM_NB_TOKEN) {
-			return EtatJeu.JAUNE_GAGNE;
-		}
-
-		if (gameScore.getRedScore() >= Constants.MINIMUM_NB_TOKEN) {
-			return EtatJeu.ROUGE_GAGNE;
-		}
-
-		return EtatJeu.EN_COURS;
 	}
 
 	private int findEmptyLineIndex(int colonne) {
@@ -437,6 +415,12 @@ public class Puissance4Impl implements Puissance4 {
 			break;
 		}
 	}
+
+	@Override
+	public void update(Observable o, Object arg) {
+		keepComputing = false;
+	}
+
 	/**
 	 * // * @return //
 	 */

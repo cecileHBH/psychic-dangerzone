@@ -3,6 +3,8 @@ package fr.ippon.contest.puissance4.model;
 import java.util.HashMap;
 import java.util.Map;
 
+import fr.ippon.contest.puissance4.Puissance4.EtatJeu;
+
 public class GameScore {
 
 	private Map<Player, Integer> playersScore = new HashMap<Player, Integer>();
@@ -28,13 +30,15 @@ public class GameScore {
 		this.precedent = precedent;
 	}
 
-	public boolean needToContinue(int iterationsLeft) {
+	public boolean needToContinue(int iterationsLeft, Game game) {
 
 		if (this.getYellowScore() >= Constants.MINIMUM_NB_TOKEN) {
+			game.setEtat(EtatJeu.JAUNE_GAGNE);
 			return false;
 		}
 
 		if (this.getRedScore() >= Constants.MINIMUM_NB_TOKEN) {
+			game.setEtat(EtatJeu.ROUGE_GAGNE);
 			return false;
 		}
 
