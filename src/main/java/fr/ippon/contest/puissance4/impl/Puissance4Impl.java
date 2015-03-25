@@ -1,33 +1,40 @@
 package fr.ippon.contest.puissance4.impl;
 
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
-
-import org.apache.log4j.Logger;
 
 import fr.ippon.contest.puissance4.Puissance4;
 import fr.ippon.contest.puissance4.model.ComputationType;
 import fr.ippon.contest.puissance4.model.Constants;
 import fr.ippon.contest.puissance4.model.Game;
-import fr.ippon.contest.puissance4.model.GameScore;
 
 public class Puissance4Impl implements Puissance4, Observer {
-
-	private static final Logger LOG = Logger.getLogger(Puissance4Impl.class);
 
 	private Game game = new Game();
 
 	private boolean winnerFound = false;
 
-	private int cptIter = 0;
+	private Map<ComputationType, Analysis> analylis = new HashMap<>();
+
+	public Puissance4Impl() {
+		super();
+		analylis.put(ComputationType.HORIZONTAL, new HorizontalAnalysis());
+		analylis.put(ComputationType.VERTICAL, new VerticalAnalysis());
+		analylis.put(ComputationType.DIAGONAL_BOTTOM_TOP,
+				new DiagonalBottomToTopAnalysis());
+		analylis.put(ComputationType.DIAGONAL_TOP_BOTTOM,
+				new DiagonalTopToBottomAnalysis());
+	}
 
 	@Override
 	public void nouveauJeu() {
-		winnerFound = false;
 		game = new Game();
 		game.initGame();
-		game.addObserver(this);
-
+		initGameStatusObserverData();
 	}
 
 	@Override
@@ -35,12 +42,9 @@ public class Puissance4Impl implements Puissance4, Observer {
 
 		game = new Game();
 		game.initGame(grid, tour);
-		game.addObserver(this);
 
-		initVar();
+		initGameStatusObserverData();
 		computeGameStatus();
-
-		LOG.debug("Compute game status in " + cptIter + " iterations.");
 
 	}
 
@@ -56,39 +60,71 @@ public class Puissance4Impl implements Puissance4, Observer {
 
 	@Override
 	public char getOccupant(int ligne, int colonne) {
+
+		checkColumnIndex(colonne);
+
+		checkLineIndex(ligne);
+
 		return game.getCell(ligne, colonne);
 	}
 
 	@Override
 	public void jouer(int colonne) {
 
+		checkColumnIndex(colonne);
+
+		int lineIndex = findEmptyLineIndex(colonne);
+		if (lineIndex == Constants.DEFAULT_INDEX) {
+			throw new IllegalStateException(String.format(
+					"La colonne %s est pleine.", colonne));
+		}
+
+		// play round
+		game.setCell(lineIndex, colonne, game.getPlayer().getValue());
+		game.setNextRoundPlayer();
+		game.setNextPlayer(game.findNextPlayer().getValue());
+
+		// find if there is a winner
+		initGameStatusObserverData();
+		updateGameStatusAfterMove(lineIndex, colonne);
+	}
+
+	/**
+	 * check if the column index is correct, throws IllegalArgumentException if
+	 * not
+	 * 
+	 * @param colonne
+	 *            index
+	 */
+	private void checkColumnIndex(int colonne) {
 		if (colonne < Constants.FIRST_INDEX
 				|| colonne >= Constants.NB_OF_COLUMNS) {
 			throw new IllegalArgumentException(String.format(
 					"La colonne %s n'est pas valide", colonne));
 		}
-
-		int lineIndex = findEmptyLineIndex(colonne);
-		if (!lineFound(lineIndex)) {
-			throw new IllegalStateException(String.format(
-					"La colonne %s est pleine.", colonne));
-		}
-
-		game.setCell(lineIndex, colonne, game.getPlayer().getValue());
-		game.setNextRoundPlayer();
-
-		initVar();
-		game.setNextPlayer(game.findNextPlayer().getValue());
-		updateGameStatusAfterMove(lineIndex, colonne);
-		LOG.debug("Compute game status in " + cptIter + " iterations.");
 	}
 
 	/**
-	 * Init game status observer variable
+	 * check if the ligne index is correct, throws IllegalArgumentException if
+	 * not
+	 * 
+	 * @param ligne
+	 *            index
 	 */
-	private void initVar() {
-		this.cptIter = 0;
+	private void checkLineIndex(int ligne) {
+		if (ligne < Constants.FIRST_INDEX || ligne >= Constants.NB_OF_LINES) {
+			throw new IllegalArgumentException(String.format(
+					"La ligne %s n'est pas valide", ligne));
+		}
+	}
+
+	/**
+	 * Init game status observer data
+	 */
+	private void initGameStatusObserverData() {
 		winnerFound = false;
+		game.addObserver(this);
+
 	}
 
 	/**
@@ -101,37 +137,19 @@ public class Puissance4Impl implements Puissance4, Observer {
 			return;
 		}
 
-		simpleGameStatus(game.getGrid());
-		if (winnerFound) {
-			return;
-		}
-		diagonalStatus(game.getGrid());
-		if (winnerFound) {
-			return;
-		}
-		if (isGameOver()) {
-			this.game.setEtat(EtatJeu.MATCH_NUL);
-		} else {
-			this.game.setEtat(EtatJeu.EN_COURS);
-		}
-	}
-
-	/**
-	 * Determine the game status based on the horizontal and vertical
-	 * computation
-	 * 
-	 * @param grid
-	 * @return
-	 */
-	private void simpleGameStatus(char[][] grid) {
-
-		horizontalStatus(grid);
-
-		if (winnerFound) {
-			return;
+		Iterator<Analysis> analysisIterator = analylis.values().iterator();
+		while (!winnerFound && analysisIterator.hasNext()) {
+			Analysis analysis = analysisIterator.next();
+			analysis.analyzeDimensions(this.game);
 		}
 
-		verticalStatus(grid);
+		if (!winnerFound) {
+			if (isGameOver()) {
+				this.game.setEtat(EtatJeu.MATCH_NUL);
+			} else {
+				this.game.setEtat(EtatJeu.EN_COURS);
+			}
+		}
 	}
 
 	/**
@@ -150,222 +168,25 @@ public class Puissance4Impl implements Puissance4, Observer {
 		return full == Constants.NB_OF_COLUMNS;
 	}
 
-	private boolean lineFound(int lineNumber) {
-		return lineNumber > -1;
-	}
-
-	/**
-	 * @param grid
-	 * @return
-	 */
-	private void horizontalStatus(char[][] grid) {
-
-		for (int i = Constants.NB_OF_LINES - 1; i >= Constants.FIRST_INDEX; i--) {
-
-			computeGameStatus(i, Constants.FIRST_INDEX,
-					ComputationType.HORIZONTAL);
-
-			if (winnerFound) {
-				return;
-			}
-		}
-
-	}
-
-	/**
-	 * @param grid
-	 * @return
-	 */
-	private void verticalStatus(char[][] grid) {
-
-		for (int i = Constants.FIRST_INDEX; i < Constants.NB_OF_COLUMNS; i++) {
-
-			computeGameStatus(Constants.FIRST_INDEX, i,
-					ComputationType.VERTICAL);
-
-			if (winnerFound) {
-				return;
-			}
-
-		}
-	}
-
-	/**
-	 * @param grid
-	 * @return
-	 */
-	private void diagonalStatus(char[][] grid) {
-
-		for (int i = Constants.FIRST_INDEX; i < Constants.DIAG_TOP_LINE_INDEX_LIMIT; i++) {
-
-			computeGameStatus(i, Constants.FIRST_INDEX,
-					ComputationType.DIAGONAL_TOP_BOTTOM);
-
-			if (!winnerFound) {
-				computeGameStatus(i + Constants.DIAG_TOP_LINE_INDEX_LIMIT,
-						Constants.FIRST_INDEX,
-						ComputationType.DIAGONAL_BOTTOM_TOP);
-
-			}
-
-			if (winnerFound) {
-				break;
-			}
-		}
-
-		for (int i = 1; i < Constants.DIAG_COLUMN_INDEX_LIMIT; i++) {
-
-			computeGameStatus(Constants.FIRST_INDEX, i,
-					ComputationType.DIAGONAL_TOP_BOTTOM);
-
-			if (!winnerFound) {
-				computeGameStatus(5, i, ComputationType.DIAGONAL_BOTTOM_TOP);
-
-			}
-
-			if (winnerFound) {
-				break;
-			}
-		}
-
-	}
-
 	/**
 	 * @param line
 	 * @param column
 	 */
 	private void updateGameStatusAfterMove(int line, int column) {
 
-		if (game.getEtat() == null || game.getEtat().equals(EtatJeu.EN_COURS)) {
+		if (game.getEtat().equals(EtatJeu.EN_COURS)) {
 
-			for (ComputationType computationType : ComputationType.values()) {
+			Iterator<ComputationType> iterator = EnumSet.allOf(
+					ComputationType.class).iterator();
+			while (!winnerFound && iterator.hasNext()) {
+				ComputationType computationType = iterator.next();
 				computeGameStatus(line, column, computationType);
-				if (winnerFound) {
-					break;
-				}
 			}
 
 		}
-		if (isGameOver()) {
+		if (!winnerFound && isGameOver()) {
 			game.setEtat(EtatJeu.MATCH_NUL);
 		}
-	}
-
-	/**
-	 * @param colIndex
-	 * @param rowIndex
-	 */
-	private void gameStatusOfDiagTopToBottom(int colIndex, int rowIndex) {
-
-		GameScore gameScore = new GameScore();
-
-		for (int j = colIndex; j < Constants.NB_OF_COLUMNS
-				&& rowIndex < Constants.NB_OF_LINES; j++, rowIndex++) {
-
-			cptIter++;
-
-			gameScore = updateGameScore(rowIndex, j, gameScore);
-
-			if (!gameScore.needToContinue(Constants.NB_OF_COLUMNS - colIndex,
-					this.game)) {
-				break;
-			}
-		}
-
-	}
-
-	/**
-	 * @param colIndex
-	 * @param firstRowIndex
-	 */
-	private void gameStatusOfDiagBottomToTop(int colIndex, int firstRowIndex) {
-
-		GameScore gameScore = new GameScore();
-
-		for (int j = firstRowIndex; j >= Constants.FIRST_INDEX
-				&& colIndex < Constants.NB_OF_COLUMNS; j--, colIndex++) {
-
-			cptIter++;
-
-			gameScore = updateGameScore(j, colIndex, gameScore);
-
-			if (!gameScore.needToContinue(j, this.game)) {
-				break;
-			}
-		}
-
-	}
-
-	/**
-	 * @param column
-	 */
-	private void gameStatusOfCol(int column) {
-
-		GameScore gameScore = new GameScore();
-
-		for (int j = Constants.NB_OF_LINES - 1; j >= Constants.FIRST_INDEX; j--) {
-
-			cptIter++;
-
-			gameScore = updateGameScore(j, column, gameScore);
-
-			if (game.getCell(j, column) == Constants.DEFAULT_PLAYER
-					|| !gameScore.needToContinue(j, this.game)) {
-				break;
-			}
-		}
-
-	}
-
-	/**
-	 * @param row
-	 */
-	private void gameStatusOfRow(int row) {
-
-		GameScore gameScore = new GameScore();
-
-		for (int j = Constants.FIRST_INDEX; j < Constants.NB_OF_COLUMNS; j++) {
-			cptIter++;
-
-			gameScore = updateGameScore(row, j, gameScore);
-
-			if (!gameScore.needToContinue(Constants.NB_OF_COLUMNS - j,
-					this.game)) {
-				break;
-			}
-		}
-
-	}
-
-	/**
-	 * @param rowIndex
-	 * @param colIndex
-	 * @param gameScore
-	 * @return
-	 */
-	private GameScore updateGameScore(int rowIndex, int colIndex,
-			GameScore gameScore) {
-
-		char cellContent = game.getCell(rowIndex, colIndex);
-
-		return computePlayerCpt(gameScore, cellContent);
-	}
-
-	/**
-	 * @param gameScore
-	 * @param cellContent
-	 * @return
-	 */
-	private GameScore computePlayerCpt(GameScore gameScore, char cellContent) {
-
-		if (cellContent == this.game.getNextPlayer()) {
-			gameScore.addPointToPlayer();
-
-		} else {
-			gameScore.initPlayerScore();
-		}
-
-		return gameScore;
 	}
 
 	/**
@@ -378,30 +199,22 @@ public class Puissance4Impl implements Puissance4, Observer {
 
 		switch (computationType) {
 		case HORIZONTAL:
-			gameStatusOfRow(line);
+			analylis.get(ComputationType.HORIZONTAL).analyzeCells(game, line);
 			break;
 		case VERTICAL:
-			gameStatusOfCol(column);
+			analylis.get(ComputationType.VERTICAL).analyzeCells(game, column);
 			break;
 
 		case DIAGONAL_TOP_BOTTOM:
-			int firstColIndex = column - line < Constants.FIRST_INDEX ? Constants.FIRST_INDEX
-					: column - line;
-			int firstRowIndex = line - column < Constants.FIRST_INDEX ? Constants.FIRST_INDEX
-					: line - column;
-			if (firstRowIndex < Constants.DIAG_TOP_LINE_INDEX_LIMIT
-					&& firstColIndex < Constants.DIAG_COLUMN_INDEX_LIMIT) {
-				gameStatusOfDiagTopToBottom(firstColIndex, firstRowIndex);
-			}
+			analylis.get(ComputationType.DIAGONAL_TOP_BOTTOM).analyzeCells(
+					game, line, column);
+
 			break;
 		case DIAGONAL_BOTTOM_TOP:
-			firstRowIndex = column + line >= Constants.NB_OF_LINES ? Constants.NB_OF_LINES - 1
-					: column + line;
-			firstColIndex = column - (firstRowIndex - line);
-			if (firstRowIndex > Constants.DIAG_BOTTOM_LINE_INDEX_LIMIT
-					&& firstColIndex < Constants.DIAG_COLUMN_INDEX_LIMIT) {
-				gameStatusOfDiagBottomToTop(firstColIndex, firstRowIndex);
-			}
+
+			analylis.get(ComputationType.DIAGONAL_BOTTOM_TOP).analyzeCells(
+					game, line, column);
+
 			break;
 		default:
 			break;
@@ -420,174 +233,12 @@ public class Puissance4Impl implements Puissance4, Observer {
 			}
 		}
 
-		return -1;
+		return Constants.DEFAULT_INDEX;
 	}
 
 	@Override
 	public void update(Observable o, Object arg) {
 		winnerFound = true;
 	}
-
-	/**
-	 * // * @return //
-	 */
-	// private EtatJeu diagonalStatus() {
-	//
-	// char[][] leftDiagonalGridPart1 = transposeGridLeftDiagonalPart1();
-	// EtatJeu leftDiagonalGridPart1Status =
-	// simpleGameStatus(leftDiagonalGridPart1, Constants.DIAG_NB_OF_LINES,
-	// Constants.DIAG_NB_OF_COLUMNS);
-	// if (existsWinner(leftDiagonalGridPart1Status)) {
-	// return leftDiagonalGridPart1Status;
-	// }
-	//
-	// char[][] leftDiagonalGridPart2 = transposeGridLeftDiagonalPart2();
-	// EtatJeu leftDiagonalGridPart2Status =
-	// simpleGameStatus(leftDiagonalGridPart2, Constants.DIAG_NB_OF_LINES,
-	// Constants.DIAG_NB_OF_COLUMNS);
-	// if (existsWinner(leftDiagonalGridPart2Status)) {
-	// return leftDiagonalGridPart2Status;
-	// }
-	//
-	// char[][] rightDiagonalGridPart1 = transposeGridRightDiagonalPart1();
-	// EtatJeu rightDiagonalGridPart1Status =
-	// simpleGameStatus(rightDiagonalGridPart1, Constants.DIAG_NB_OF_LINES,
-	// Constants.DIAG_NB_OF_COLUMNS);
-	// if (existsWinner(rightDiagonalGridPart1Status)) {
-	// return rightDiagonalGridPart1Status;
-	// }
-	//
-	// char[][] rightDiagonalGridPart2 = transposeGridRightDiagonalPart2();
-	// EtatJeu rightDiagonalGridPart2Status =
-	// simpleGameStatus(rightDiagonalGridPart2, Constants.DIAG_NB_OF_LINES,
-	// Constants.DIAG_NB_OF_COLUMNS);
-	// if (existsWinner(rightDiagonalGridPart2Status)) {
-	// return rightDiagonalGridPart2Status;
-	// }
-	//
-	// return EtatJeu.EN_COURS;
-	// }
-	//
-	// /**
-	// * @return
-	// */
-	// private char[][] transposeGridRightDiagonalPart1() {
-	// char[][] rightDiagonalGrid = createDiagonalArray();
-	//
-	// List<Integer> linesToLookOver = Arrays.asList(1, 0, 0);
-	// List<Integer> rowToLookOver = Arrays.asList(0, 1, 3);
-	// List<Integer> colBeginIndex = Arrays.asList(1, 0, 1);
-	//
-	// for (int i = 0; i < linesToLookOver.size(); i++) {
-	// int lineIndex = linesToLookOver.get(i);
-	// int colIndex = rowToLookOver.get(i);
-	//
-	// int colCpt = colBeginIndex.get(i);
-	//
-	// for (int j = lineIndex; j < Constants.NB_OF_LINES && colIndex <
-	// Constants.NB_OF_COLUMNS; j++) {
-	// rightDiagonalGrid[i][colCpt] = game.getCell(j, colIndex);
-	// colIndex++;
-	// colCpt++;
-	// }
-	// }
-	//
-	// return rightDiagonalGrid;
-	// }
-	//
-	// /**
-	// * @return
-	// */
-	// private char[][] transposeGridRightDiagonalPart2() {
-	// char[][] rightDiagonalGrid = createDiagonalArray();
-	//
-	// List<Integer> linesToLookOver = Arrays.asList(0, 0, 2);
-	// List<Integer> rowToLookOver = Arrays.asList(2, 0, 0);
-	// List<Integer> colBeginIndex = Arrays.asList(0, 0, 1);
-	//
-	// for (int i = 0; i < linesToLookOver.size(); i++) {
-	// int lineIndex = linesToLookOver.get(i);
-	// int colIndex = rowToLookOver.get(i);
-	//
-	// int colCpt = colBeginIndex.get(i);
-	//
-	// for (int j = lineIndex; j < Constants.NB_OF_LINES && colIndex <
-	// Constants.NB_OF_COLUMNS; j++) {
-	// rightDiagonalGrid[i][colCpt] = game.getCell(j, colIndex);
-	// colIndex++;
-	// colCpt++;
-	// }
-	// }
-	//
-	// return rightDiagonalGrid;
-	// }
-	//
-	// /**
-	// * @return
-	// */
-	// private char[][] transposeGridLeftDiagonalPart1() {
-	//
-	// char[][] leftDiagonalGrid = createDiagonalArray();
-	//
-	// List<Integer> linesToLookOver = Arrays.asList(4, 5, 5);
-	// List<Integer> rowToLookOver = Arrays.asList(0, 1, 3);
-	// List<Integer> colBeginIndex = Arrays.asList(0, 0, 1);
-	//
-	// for (int i = 0; i < linesToLookOver.size(); i++) {
-	// int lineIndex = linesToLookOver.get(i);
-	// int colIndex = rowToLookOver.get(i);
-	//
-	// int colCpt = colBeginIndex.get(i);
-	//
-	// for (int j = lineIndex; j >= 0 && colIndex < Constants.NB_OF_COLUMNS;
-	// j--) {
-	// leftDiagonalGrid[i][colCpt] = game.getCell(j, colIndex);
-	// colIndex++;
-	// colCpt++;
-	// }
-	// }
-	//
-	// return leftDiagonalGrid;
-	// }
-	//
-	// /**
-	// * @return
-	// */
-	// private char[][] transposeGridLeftDiagonalPart2() {
-	//
-	// char[][] leftDiagonalGrid = createDiagonalArray();
-	//
-	// List<Integer> linesToLookOver = Arrays.asList(3, 5, 5);
-	// List<Integer> rowToLookOver = Arrays.asList(0, 0, 2);
-	// List<Integer> colBeginIndex = Arrays.asList(1, 0, 1);
-	//
-	// for (int i = 0; i < linesToLookOver.size(); i++) {
-	// int lineIndex = linesToLookOver.get(i);
-	// int colIndex = rowToLookOver.get(i);
-	//
-	// int colCpt = colBeginIndex.get(i);
-	//
-	// for (int j = lineIndex; j >= 0 && colIndex < Constants.NB_OF_COLUMNS;
-	// j--) {
-	// leftDiagonalGrid[i][colCpt] = game.getCell(j, colIndex);
-	// colIndex++;
-	// colCpt++;
-	// }
-	// }
-	//
-	// return leftDiagonalGrid;
-	// }
-	//
-	// /**
-	// * @return
-	// */
-	// private char[][] createDiagonalArray() {
-	// char[][] diagonalGrid = new
-	// char[Constants.DIAG_NB_OF_LINES][Constants.DIAG_NB_OF_COLUMNS];
-	// for (char[] row : diagonalGrid) {
-	// Arrays.fill(row, Player.DEFAULT.getValue());
-	// }
-	// return diagonalGrid;
-	// }
 
 }

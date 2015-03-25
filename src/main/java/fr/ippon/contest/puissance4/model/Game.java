@@ -14,11 +14,11 @@ public class Game extends Observable {
 
 	private char nextPlayer = Constants.DEFAULT_PLAYER;
 
-	private EtatJeu etat = null;
+	private EtatJeu etat = EtatJeu.EN_COURS;
 
 	/**
-     * 
-     */
+	 * Init grid game, pick a random first player
+	 */
 	public void initGame() {
 
 		for (char[] row : grid) {
@@ -30,6 +30,15 @@ public class Game extends Observable {
 		initFirstPlayer();
 	}
 
+	/**
+	 * Initialize grid game with grid and set the next player.
+	 * 
+	 * @param grid
+	 *            : must be a 6x7 grid, throws an IllegalArgumentException if
+	 *            not
+	 * @param tour
+	 *            : 'J' or 'R', throws an IllegalArgumentException if not
+	 */
 	public void initGame(char[][] grid, char tour) {
 		Player actualPlayer = Player.findJoueurByValue(tour);
 
@@ -41,7 +50,7 @@ public class Game extends Observable {
 
 		this.grid = grid;
 		this.player = actualPlayer;
-		this.etat = null;
+		this.etat = EtatJeu.EN_COURS;
 		this.nextPlayer = findNextPlayer().getValue();
 	}
 
@@ -76,16 +85,16 @@ public class Game extends Observable {
 	}
 
 	/**
-	 * 
-	 */
+         * 
+         */
 	public void setNextRoundPlayer() {
 
 		this.setPlayer(findNextPlayer());
 	}
 
 	/**
-	 * 
-	 */
+         * 
+         */
 	public Player findNextPlayer() {
 		return this.getPlayer().switchPlayer();
 	}
@@ -129,6 +138,11 @@ public class Game extends Observable {
 
 	public char getNextPlayer() {
 		return nextPlayer;
+	}
+
+	public boolean hasWinner() {
+		return this.getEtat() == EtatJeu.JAUNE_GAGNE
+				|| this.getEtat() == EtatJeu.ROUGE_GAGNE;
 	}
 
 }
